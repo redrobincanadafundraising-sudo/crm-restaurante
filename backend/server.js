@@ -7,16 +7,16 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Database connection
+// Central Postgre Database neon.tech layer configuration
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// Serve static files (HTML, CSS, JS) from the backend folder
+// Serve frontend directory assets explicitly
 app.use(express.static(path.join(__dirname, './')));
 
-// Login Endpoint
+// Secure Authorization Endpoint
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -28,15 +28,36 @@ app.post('/api/login', async (req, res) => {
     if (result.rows.length > 0) {
       res.json({ success: true, user: result.rows[0] });
     } else {
-      res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      res.status(401).json({ success: false, message: 'Invalid corporate email or password.' });
     }
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Database error.' });
+    res.status(500).json({ success: false, message: 'Internal cloud system data error.' });
   }
 });
 
-// Get Pending Tasks / Leads
+// Dynamic Store Metrics Fetching Endpoint
+app.get('/api/metrics', async (req, res) => {
+  const { store_id, role } = req.query;
+  try {
+    let query = 'SELECT COALESCE(SUM(emails_sent), 0) as emails_sent, COALESCE(SUM(errors), 0) as errors, COALESCE(SUM(opportunities), 0) as opportunities FROM store_metrics';
+    const params = [];
+    
+    // Store managers only pull structural records for their own branch assignment context
+    if (role === 'store_manager' && store_id) {
+      query += ' WHERE store_id = $1';
+      params.push(store_id);
+    }
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error retrieving branch metric matrix details.' });
+  }
+});
+
+// View Pipeline Task Log Registry Entries
 app.get('/api/tasks', async (req, res) => {
   const { store_id, role } = req.query;
   try {
@@ -53,11 +74,11 @@ app.get('/api/tasks', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error fetching tasks.' });
+    res.status(500).json({ message: 'Error fetching dynamic operational logs.' });
   }
 });
 
-// Create New Pending Task / Lead
+// Append New Log Entry
 app.post('/api/tasks', async (req, res) => {
   const { title, description, store_id, status } = req.body;
   try {
@@ -68,12 +89,12 @@ app.post('/api/tasks', async (req, res) => {
     res.json({ success: true, task: result.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Error creating task.' });
+    res.status(500).json({ success: false, message: 'Error logging real-time pending transaction record.' });
   }
 });
 
-// Start server
+// Bind Port configuration
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Application layer executing cleanly on port ${PORT}`);
 });
