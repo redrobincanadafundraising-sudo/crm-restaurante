@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Robin Canada CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        .nav-item.active { background-color: #1e3a8a; color: white; }
+        .loading { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col">
+            <div class="p-6 border-b border-slate-700">
+                <h1 class="text-xl font-bold text-white tracking-tight">Red Robin CRM</h1>
+                <p class="text-xs text-slate-400 mt-1">Ticket Management System</p>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="showView('admin4')" id="nav-admin4" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3 active">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Admin 4 Dashboard (Super)
+                </button>
+                <button onclick="showView('new-ticket')" id="nav-new-ticket" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Create New Ticket
+                </button>
+                <button onclick="showView('store')" id="nav-store" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 transition flex items-center gap-3">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    Store View (Manager)
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">C</div>
+                    <div>
+                        <p class="text-sm font-medium text-white">Catering</p>
+                        <p class="text-xs text-slate-400">admin_4</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-8">
+            
+            <!-- VIEW 1: Admin 4 Dashboard -->
+            <div id="view-admin4" class="view-section active">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Global Control Dashboard</h2>
+                        <p class="text-gray-500">Complete view of users, access levels, and all tickets.</p>
+                    </div>
+                </div>
+
+                <!-- User Management Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900">User & Access Management</h3>
+                        <input type="text" id="userSearch" onkeyup="filterUsers()" placeholder="Search user..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 font-medium">
+                            <tr>
+                                <th class="px-6 py-3">Name / Email</th>
+                                <th class="px-6 py-3">Role</th>
+                                <th class="px-6 py-3">Store ID</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading users from database...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VIEW 2: New Ticket Form -->
+            <div id="view-new-ticket" class="view-section">
+                <div class="max-w-3xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900">Create New Ticket</h2>
+                        <p class="text-gray-500">Fill in the details below. The assigned user will receive an email notification automatically.</p>
+                    </div>
+
+                    <form id="ticketForm" class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Ticket Title</label>
+                                <input type="text" name="title" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Kitchen equipment malfunction">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select name="category" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">Select a category...</option>
+                                    <option>Maintenance & Equipment</option>
+                                    <option>Human Resources (HR)</option>
+                                    <option>Finance & Cashier</option>
+                                    <option>Inventory & Purchasing</option>
+                                    <option>Catering, Hot Lunch & Events</option>
+                                    <option>IT & Systems</option>
+                                    <option>Quality & Food Safety</option>
+                                    <option>Marketing & Materials</option>
+                                    <option>Others</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                <select name="priority" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">Select priority...</option>
+                                    <option>High</option>
+                                    <option>Medium</option>
+                                    <option>Low</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Assign to (User ID)</label>
+                                <select name="assigned_to" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" id="assigneeSelect">
+                                    <option value="">Select responsible...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Origin Store ID</label>
+                                <select name="origin_store_id" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <option value="">Select store (or leave blank for HO)...</option>
+                                    <option value="1">1 - Abbotsford 287</option>
+                                    <option value="2">2 - Coquitlam 279</option>
+                                    <option value="3">3 - Guildford 288</option>
+                                    <option value="4">4 - Kamloops 282</option>
+                                    <option value="5">5 - Kelowna 285</option>
+                                    <option value="6">6 - Langley 284</option>
+                                    <option value="7">7 - Maple Ridge</option>
+                                    <option value="8">8 - Parkwood 291</option>
+                                    <option value="9">9 - Robson 273</option>
+                                    <option value="10">10 - Vernon 293</option>
+                                    <option value="11">11 - Victoria 276</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Detailed Description</label>
+                            <textarea name="description" rows="4" required class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Describe the issue, actions already taken, and urgency..."></textarea>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button type="button" onclick="showView('admin4')" class="px-6 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                            <button type="submit" id="submitTicketBtn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition flex items-center gap-2">
+                                Create Ticket & Notify
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- VIEW 3: Store Manager View -->
+            <div id="view-store" class="view-section">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">My Tickets</h2>
+                        <p class="text-gray-500">Restricted view: <span class="font-semibold text-blue-700">Store 1 - Abbotsford 287</span></p>
+                    </div>
+                    <button onclick="showView('new-ticket')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                        New Ticket
+                    </button>
+                </div>
+
+                <!-- Store Tickets Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-600 font-medium">
+                            <tr>
+                                <th class="px-6 py-3">ID</th>
+                                <th class="px-6 py-3">Title</th>
+                                <th class="px-6 py-3">Category</th>
+                                <th class="px-6 py-3">Priority</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Assigned to</th>
+                            </tr>
+                        </thead>
+                        <tbody id="storeTicketsTableBody" class="divide-y divide-gray-100">
+                            <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading tickets from database...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Security Notice for Store View -->
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <p class="text-sm font-medium text-blue-900">Security Notice</p>
+                        <p class="text-sm text-blue-700 mt-1">Due to system security policies, you can only view tickets related to <strong>Store 1 - Abbotsford 287</strong>. Tickets from other units or the Head Office are not visible in this account.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+            document.getElementById('nav-' + viewId).classList.add('active');
+        }
+
+        // --- API Integration Logic ---
+        let allUsers = [];
+
+        async function loadData() {
+            try {
+                // Fetch Users
+                const usersRes = await fetch('/api/users');
+                allUsers = await usersRes.json();
+                renderUsersTable(allUsers);
+                populateAssigneeDropdown(allUsers);
+
+                // Fetch Tickets
+                const ticketsRes = await fetch('/api/tickets');
+                const tickets = await ticketsRes.json();
+                renderStoreTicketsTable(tickets);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error connecting to database. Check server logs.</td></tr>';
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('usersTableBody');
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(user => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <p class="font-medium text-gray-900">${user.name}</p>
+                        <p class="text-gray-500 text-xs">${user.email}</p>
+                    </td>
+                    <td class="px-6 py-4"><span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium">${user.role}</span></td>
+                    <td class="px-6 py-4 text-gray-600">${user.store_id || 'N/A'}</td>
+                    <td class="px-6 py-4"><span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}"></span> ${user.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <button class="text-blue-600 hover:text-blue-800 text-xs font-medium border border-blue-200 px-3 py-1 rounded hover:bg-blue-50">Edit Access</button>
+                        <button class="text-gray-600 hover:text-gray-800 text-xs font-medium border border-gray-200 px-3 py-1 rounded hover:bg-gray-50">Reset Password</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function populateAssigneeDropdown(users) {
+            const select = document.getElementById('assigneeSelect');
+            select.innerHTML = '<option value="">Select responsible...</option>' + 
+                users.map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('');
+        }
+
+        function renderStoreTicketsTable(tickets) {
+            const tbody = document.getElementById('storeTicketsTableBody');
+            // Filter for Store 1 for this prototype view
+            const storeTickets = tickets.filter(t => t.origin_store_id === 1 || t.origin_store_id === null); 
+            
+            if (storeTickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No tickets found for this store.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = storeTickets.map(t => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-mono text-gray-500">#${String(t.id).padStart(5, '0')}</td>
+                    <td class="px-6 py-4 font-medium text-gray-900">${t.title}</td>
+                    <td class="px-6 py-4 text-gray-600">${t.category}</td>
+                    <td class="px-6 py-4"><span class="bg-${t.priority === 'High' ? 'red' : t.priority === 'Medium' ? 'yellow' : 'gray'}-100 text-${t.priority === 'High' ? 'red' : t.priority === 'Medium' ? 'yellow' : 'gray'}-700 px-2 py-1 rounded text-xs font-bold">${t.priority}</span></td>
+                    <td class="px-6 py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">${t.status}</span></td>
+                    <td class="px-6 py-4 text-gray-600">${t.assigned_to_name || 'Unassigned'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('userSearch').value.toLowerCase();
+            const filtered = allUsers.filter(u => u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query));
+            renderUsersTable(filtered);
+        }
+
+        // --- Form Submission ---
+        document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitTicketBtn');
+            btn.classList.add('loading');
+            btn.textContent = 'Creating...';
+
+            const formData = new FormData(e.target);
+            const payload = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                category: formData.get('category'),
+                priority: formData.get('priority'),
+                assigned_to: formData.get('assigned_to') || null,
+                origin_store_id: formData.get('origin_store_id') || null,
+                created_by: 1 // Mocked as Admin 4 (Catering) for this prototype
+            };
+
+            try {
+                const res = await fetch('/api/tickets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (res.ok) {
+                    alert('Ticket created successfully!');
+                    e.target.reset();
+                    showView('store'); // Redirect to view the new ticket
+                    loadData(); // Refresh data
+                } else {
+                    alert('Failed to create ticket.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.innerHTML = `Create Ticket & Notify`;
+            }
+        });
+
+        // Initialize
+        loadData();
+    </script>
+</body>
+</html>
