@@ -1,4 +1,4 @@
-require('dotenv').config();
+    require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -32,7 +32,7 @@ pool.connect((err, client, release) => {
 // API ROUTES
 // ==========================================
 
-// GET all users (for Admin 4 management and dropdowns)
+// GET all users
 app.get('/api/users', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -52,7 +52,7 @@ app.get('/api/tickets', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT t.id, t.title, t.category, t.priority, t.status, 
-                   u.name as assigned_to_name, t.origin_store_id
+                   u.full_name as assigned_to_name, t.origin_store_id
             FROM tickets t
             LEFT JOIN users u ON t.assigned_to = u.id
             ORDER BY t.created_at DESC
