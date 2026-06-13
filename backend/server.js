@@ -1,57 +1,79 @@
 const express = require('express');
 const { Pool } = require('pg');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Database connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, 
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'captains_secret_key';
+// Serve static files (HTML, CSS, JS) from the backend folder
+app.use(express.static(path.join(__dirname, './')));
 
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(401);
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user; 
-    next();
-  });
-};
-
+// Login Endpoint
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    const user = result.rows[0];
-    if (user && password === 'password123') { 
-      const token = jwt.sign({ id: user.id, role: user.role, store_id: user.store_id, name: user.full_name }, JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, role: user.role, name: user.full_name });
+    const result = await pool.query(
+      'SELECT id, full_name, email, role, store_id FROM users WHERE email = $1 AND password_hash = $2',
+      [email, password]
+    );
+    
+    if (result.rows.length > 0) {
+      res.json({ success: true, user: result.rows[0] });
+    } else {
+      res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
-    res.status(401).json({ error: 'Credenciais inválidas' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Database error.' });
+  }
 });
 
-app.get('/api/tickets', authenticateToken, async (req, res) => {
+// Get Pending Tasks / Leads
+app.get('/api/tasks', async (req, res) => {
+  const { store_id, role } = req.query;
   try {
-    let query = 'SELECT t.*, s.name as store_name, u.full_name as creator_name FROM tickets t JOIN stores s ON t.store_id = s.id JOIN users u ON t.created_by_user_id = u.id';
-    let params = [];
-    if (req.user.role === 'store_manager') {
-      query += ' WHERE t.store_id = $1';
-      params.push(req.user.store_id);
-    } else { query += ' ORDER BY t.created_at DESC'; }
+    let query = 'SELECT * FROM tasks';
+    const params = [];
+    
+    if (role === 'store_manager' && store_id) {
+      query += ' WHERE store_id = $1';
+      params.push(store_id);
+    }
+    
+    query += ' ORDER BY created_at DESC';
     const result = await pool.query(query, params);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error fetching tasks.' });
+  }
 });
 
-app.use(express.static(path.join(__dirname, './')));
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+// Create New Pending Task / Lead
+app.post('/api/tasks', async (req, res) => {
+  const { title, description, store_id, status } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO tasks (title, description, store_id, status, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+      [title, description, store_id || null, status || 'Pending']
+    );
+    res.json({ success: true, task: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Error creating task.' });
+  }
+});
+
+// Start server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
