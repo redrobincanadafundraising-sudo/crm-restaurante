@@ -1,100 +1,101 @@
+require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-const path = require('path');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
 
-// Central Postgre Database neon.tech layer configuration
+// Neon Database Connection Pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Serve frontend directory assets explicitly
-app.use(express.static(path.join(__dirname, './')));
-
-// Secure Authorization Endpoint
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const result = await pool.query(
-      'SELECT id, full_name, email, role, store_id FROM users WHERE email = $1 AND password_hash = $2',
-      [email, password]
-    );
-    
-    if (result.rows.length > 0) {
-      res.json({ success: true, user: result.rows[0] });
+// Test Database Connection
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('Error acquiring client', err.stack);
     } else {
-      res.status(401).json({ success: false, message: 'Invalid corporate email or password.' });
+        console.log('Successfully connected to Neon PostgreSQL database.');
+        release();
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Internal cloud system data error.' });
-  }
 });
 
-// Dynamic Store Metrics Fetching Endpoint
-app.get('/api/metrics', async (req, res) => {
-  const { store_id, role } = req.query;
-  try {
-    let query = 'SELECT COALESCE(SUM(emails_sent), 0) as emails_sent, COALESCE(SUM(errors), 0) as errors, COALESCE(SUM(opportunities), 0) as opportunities FROM store_metrics';
-    const params = [];
-    
-    // Store managers only pull structural records for their own branch assignment context
-    if (role === 'store_manager' && store_id) {
-      query += ' WHERE store_id = $1';
-      params.push(store_id);
+// ==========================================
+// API ROUTES
+// ==========================================
+
+// GET all tickets
+app.get('/api/tickets', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT t.id, t.title, t.category, t.priority, t.status, 
+                   u.name as assigned_to_name, t.origin_store_id
+            FROM tickets t
+            LEFT JOIN users u ON t.assigned_to = u.id
+            ORDER BY t.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching tickets:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    
-    const result = await pool.query(query, params);
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error retrieving branch metric matrix details.' });
-  }
 });
 
-// View Pipeline Task Log Registry Entries
-app.get('/api/tasks', async (req, res) => {
-  const { store_id, role } = req.query;
-  try {
-    let query = 'SELECT * FROM tasks';
-    const params = [];
-    
-    if (role === 'store_manager' && store_id) {
-      query += ' WHERE store_id = $1';
-      params.push(store_id);
+// POST a new ticket
+app.post('/api/tickets', async (req, res) => {
+    const { title, description, category, priority, assigned_to, origin_store_id, created_by } = req.body;
+    try {
+        const result = await pool.query(`
+            INSERT INTO tickets (title, description, category, priority, assigned_to, origin_store_id, created_by, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'Open')
+            RETURNING *
+        `, [title, description, category, priority, assigned_to, origin_store_id, created_by]);
+        
+        console.log(`New ticket created: ${result.rows[0].id}.`);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Error creating ticket:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
-    
-    query += ' ORDER BY created_at DESC';
-    const result = await pool.query(query, params);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error fetching dynamic operational logs.' });
-  }
 });
 
-// Append New Log Entry
-app.post('/api/tasks', async (req, res) => {
-  const { title, description, store_id, status } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO tasks (title, description, store_id, status, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
-      [title, description, store_id || null, status || 'Pending']
-    );
-    res.json({ success: true, task: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Error logging real-time pending transaction record.' });
-  }
+// GET all users (for Admin 4 management)
+app.get('/api/users', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, name, email, role, store_id, is_active 
+            FROM users 
+            ORDER BY role, name
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
-// Bind Port configuration
-const PORT = process.env.PORT || 10000;
+// Health check route for Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', message: 'Red Robin CRM API is running' });
+});
+
+// Serve frontend for all other routes
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Start Server
 app.listen(PORT, () => {
-  console.log(`Application layer executing cleanly on port ${PORT}`);
+    console.log('=================================================');
+    console.log('Red Robin CRM Server started successfully!');
+    console.log(`Listening on port: ${PORT}`);
+    console.log('=================================================');
 });
