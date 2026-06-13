@@ -52,6 +52,6 @@ app.get('/api/tickets', authenticateToken, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.use(express.static(path.join(__dirname, '../')));
+app.use(express.static(path.join(__dirname, './')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
