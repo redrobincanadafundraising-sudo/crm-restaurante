@@ -3,70 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM - Captain's Log</title>
+    <title>CRM - Red Robin Fundraising</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 0; }
-        .login-container { max-width: 400px; margin: 100px auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .dashboard-container { display: none; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #1a252f; color: white; padding: 15px 30px; }
-        .btn { background: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #2980b9; }
-        .btn-logout { background: #e74c3c; }
-        .btn-logout:hover { background: #c0392b; }
+        :root {
+            --primary-color: #1a252f;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f1c40f;
+            --bg-color: #f4f6f9;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 0; }
+        
+        /* Fixed Login View to avoid overlapping layout */
+        .login-wrapper { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--bg-color); }
+        .login-container { max-width: 400px; width: 100%; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        /* Dashboard Container - Initially Hidden completely */
+        #dashboardScreen { display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--primary-color); color: white; padding: 15px 30px; }
+        .main-content { padding: 30px; max-width: 1400px; margin: 0 auto; }
+        
+        /* Metric Summary Row */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .metric-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--accent-color); }
+        .metric-card.sent { border-top-color: var(--success-color); }
+        .metric-card.errors { border-top-color: var(--danger-color); }
+        .metric-card.opps { border-top-color: var(--warning-color); }
+        .metric-number { font-size: 2rem; font-weight: bold; margin: 10px 0 5px 0; }
+        .metric-label { font-weight: bold; color: #555; text-transform: uppercase; }
+        .metric-subtext { font-size: 0.85rem; color: #888; }
+
+        /* Workspace Panels */
+        .workspace-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        @media (max-width: 900px) { .workspace-grid { grid-template-columns: 1fr; } }
+        
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .task-list { margin-top: 20px; }
-        .task-item { background: #fff; padding: 15px; border-left: 5px solid #f39c12; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        
+        .btn { background: var(--accent-color); color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem; width: 100%; }
+        .btn:hover { opacity: 0.9; }
+        .btn-logout { background: var(--danger-color); width: auto; padding: 8px 15px; }
+        
+        .task-list { margin-top: 15px; }
+        .task-item { background: #fff; padding: 15px; border-left: 5px solid var(--warning-color); margin-bottom: 12px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .task-item h4 { margin: 0 0 5px 0; color: #2c3e50; }
+        .task-item p { margin: 0 0 10px 0; color: #555; font-size: 0.95rem; }
+        .task-meta { font-size: 0.8rem; color: #888; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="login-container">
-        <h2>CRM Login</h2>
-        <div class="form-group">
-            <label>Email Address</label>
-            <input type="email" id="email" placeholder="Enter your corporate email">
+    <!-- 1. ISOLATED LOGIN SCREEN -->
+    <div id="loginScreen" class="login-wrapper">
+        <div class="login-container">
+            <h2 style="margin-top:0; text-align: center; color: var(--primary-color);">CRM Access</h2>
+            <div class="form-group">
+                <label>Corporate Email</label>
+                <input type="email" id="email" placeholder="e.g., jreeves@redrobincanada.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" value="password123">
+            </div>
+            <button class="btn" onclick="handleLogin()">Sign In</button>
+            <p id="loginError" style="color: var(--danger-color); margin-top: 10px; display: none; text-align: center; font-weight: bold;"></p>
         </div>
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="password" value="password123">
-        </div>
-        <button class="btn" style="width: 100%;" onclick="handleLogin()">Sign In</button>
-        <p id="loginError" style="color: red; margin-top: 10px; display: none;"></p>
     </div>
 
-    <!-- MAIN DASHBOARD -->
+    <!-- 2. MAIN DASHBOARD SCREEN (FULLY CONCEALED UNTIL AUTH) -->
     <div id="dashboardScreen">
         <div class="header">
-            <h2 id="welcomeTitle">Welcome to Captain's Log</h2>
+            <h3 id="welcomeTitle" style="margin:0;">Captain's Log Dashboard</h3>
             <button class="btn btn-logout" onclick="handleLogout()">Logout</button>
         </div>
         
-        <div class="dashboard-container" style="display: block;">
-            <div style="display: flex; gap: 20px; margin-top: 20px;">
-                <!-- Create Pending Task Form -->
-                <div class="card" style="flex: 1;">
-                    <h3>Create New Pending Item / Lead</h3>
+        <div class="main-content">
+            <!-- Unified Metrics Header Section -->
+            <div class="metrics-grid">
+                <div class="metric-card sent">
+                    <div class="metric-label">Emails Sent</div>
+                    <div id="countSent" class="metric-number">0</div>
+                    <div class="metric-subtext">Successfully processed & delivered</div>
+                </div>
+                <div class="metric-card errors">
+                    <div class="metric-label">Errors</div>
+                    <div id="countErrors" class="metric-number">0</div>
+                    <div class="metric-subtext">Invalid, failed or bounced addresses</div>
+                </div>
+                <div class="metric-card opps">
+                    <div class="metric-label">Opportunities</div>
+                    <div id="countOpps" class="metric-number">0</div>
+                    <div class="metric-subtext">Leads requiring contact information</div>
+                </div>
+            </div>
+
+            <!-- Operational Log Space -->
+            <div class="workspace-grid">
+                <!-- Data Entry Form -->
+                <div class="card">
+                    <h3 style="margin-top:0;">Log Pending Item / Lead</h3>
                     <div class="form-group">
-                        <label>Title / School Name</label>
-                        <input type="text" id="taskTitle" placeholder="e.g., Glenrosa Elementary Schedule">
+                        <label>Title / Institution Name</label>
+                        <input type="text" id="taskTitle" placeholder="e.g., Glenrosa Elementary Schedule Update">
                     </div>
                     <div class="form-group">
-                        <label>Description / Notes</label>
-                        <textarea id="taskDesc" rows="4" placeholder="Enter status updates, opportunities, or delivery tracking details..."></textarea>
+                        <label>Category Status</label>
+                        <select id="taskStatus">
+                            <option value="Pending">Pending Action</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Operational Log Notes</label>
+                        <textarea id="taskDesc" rows="5" placeholder="Enter specific schedule adjustments, delivery routing parameters, email communication milestones..."></textarea>
                     </div>
                     <button class="btn" onclick="createTask()">Save Log Entry</button>
                 </div>
 
-                <!-- View Logged Items -->
-                <div class="card" style="flex: 2;">
-                    <h3>Logged Pending Items</h3>
-                    <div id="taskList" class="task-list">
-                        <!-- Tasks will load here dynamically -->
-                    </div>
+                <!-- Live Logs View Area -->
+                <div class="card">
+                    <h3 style="margin-top:0;">Active Operational Log Tracking</h3>
+                    <div id="taskList" class="task-list"></div>
                 </div>
             </div>
         </div>
@@ -76,19 +137,17 @@
         let currentUser = null;
         const API_URL = window.location.origin;
 
-        // Check if user session already exists
+        // Verify session persistence safely
         if(localStorage.getItem('user')) {
             currentUser = JSON.parse(localStorage.getItem('user'));
             showDashboard();
-        } else {
-            document.getElementById('dashboardScreen').style.display = 'none';
-            document.getElementById('loginScreen').style.display = 'block';
         }
 
-        async class handleLogin() {
+        async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorElement = document.getElementById('loginError');
+            errorElement.style.display = 'none';
 
             try {
                 const response = await fetch(`${API_URL}/api/login`, {
@@ -107,7 +166,7 @@
                     errorElement.style.display = 'block';
                 }
             } catch (err) {
-                errorElement.textContent = 'Connection error with Render server.';
+                errorElement.textContent = 'Server connection interface error.';
                 errorElement.style.display = 'block';
             }
         }
@@ -115,8 +174,25 @@
         function showDashboard() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('dashboardScreen').style.display = 'block';
-            document.getElementById('welcomeTitle').textContent = `Captain's Log - Active User: ${currentUser.full_name} (${currentUser.role === 'admin_n3' || currentUser.role === 'specialist_n2' ? 'Central Office' : 'Branch Manager'})`;
+            
+            const isCentral = currentUser.role !== 'store_manager';
+            document.getElementById('welcomeTitle').textContent = `Captain's Log | Active User: ${currentUser.full_name} (${isCentral ? 'Central Office' : 'Branch Manager'})`;
+            
+            loadDashboardMetrics();
             loadTasks();
+        }
+
+        async function loadDashboardMetrics() {
+            try {
+                const response = await fetch(`${API_URL}/api/metrics?store_id=${currentUser.store_id || ''}&role=${currentUser.role}`);
+                const metrics = await response.json();
+                
+                document.getElementById('countSent').textContent = metrics.emails_sent || 0;
+                document.getElementById('countErrors').textContent = metrics.errors || 0;
+                document.getElementById('countOpps').textContent = metrics.opportunities || 0;
+            } catch (err) {
+                console.error('Failed to load metrics panel data:', err);
+            }
         }
 
         async function loadTasks() {
@@ -127,27 +203,40 @@
                 listContainer.innerHTML = '';
 
                 if(tasks.length === 0) {
-                    listContainer.innerHTML = '<p style="color: #777;">No pending items logged yet.</p>';
+                    listContainer.innerHTML = '<p style="color: #777; font-style: italic;">No pending tasks or leads currently tracked.</p>';
                     return;
                 }
 
                 tasks.forEach(task => {
                     const div = document.createElement('div');
                     div.className = 'task-item';
-                    div.innerHTML = `<strong>${task.title}</strong><p>${task.description}</p><small style="color:#888;">Status: ${task.status} | Logged on: ${new Date(task.created_at).toLocaleDateString()}</small>`;
+                    
+                    // Assign border color context dynamically based on task severity status
+                    if(task.status === 'Completed') div.style.borderLeftColor = 'var(--success-color)';
+                    if(task.status === 'In Progress') div.style.borderLeftColor = 'var(--accent-color)';
+
+                    div.innerHTML = `
+                        <h4>${task.title}</h4>
+                        <p>${task.description}</p>
+                        <div class="task-meta">
+                            <span>Status: <strong>${task.status}</strong></span>
+                            <span>Date Logged: ${new Date(task.created_at).toLocaleDateString()}</span>
+                        </div>
+                    `;
                     listContainer.appendChild(div);
                 });
             } catch (err) {
-                console.error('Error loading tasks:', err);
+                console.error('Error rendering real-time operational log views:', err);
             }
         }
 
         async function createTask() {
             const title = document.getElementById('taskTitle').value;
             const description = document.getElementById('taskDesc').value;
+            const status = document.getElementById('taskStatus').value;
 
             if(!title || !description) {
-                alert('Please fill out both fields.');
+                alert('Please fill out all operational record fields completely.');
                 return;
             }
 
@@ -159,7 +248,7 @@
                         title,
                         description,
                         store_id: currentUser.store_id,
-                        status: 'Pending'
+                        status: status
                     })
                 });
                 const data = await response.json();
@@ -169,7 +258,7 @@
                     document.getElementById('taskDesc').value = '';
                     loadTasks();
                 } else {
-                    alert('Error saving log entry.');
+                    alert('Error saving log data to the central cluster database.');
                 }
             } catch (err) {
                 console.error(err);
