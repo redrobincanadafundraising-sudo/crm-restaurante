@@ -32,6 +32,21 @@ pool.connect((err, client, release) => {
 // API ROUTES
 // ==========================================
 
+// GET all users (for Admin 4 management and dropdowns)
+app.get('/api/users', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, name, email, role, store_id, is_active 
+            FROM users 
+            ORDER BY role, name
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // GET all tickets
 app.get('/api/tickets', async (req, res) => {
     try {
@@ -63,21 +78,6 @@ app.post('/api/tickets', async (req, res) => {
         res.status(201).json(result.rows[0]);
     } catch (err) {
         console.error('Error creating ticket:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// GET all users (for Admin 4 management)
-app.get('/api/users', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT id, name, email, role, store_id, is_active 
-            FROM users 
-            ORDER BY role, name
-        `);
-        res.json(result.rows);
-    } catch (err) {
-        console.error('Error fetching users:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
